@@ -37,8 +37,28 @@
 			->setFromPlaceholder(_('YYYY-MM-DD'))
 			->setToPlaceholder(_('YYYY-MM-DD'))
 	)
+	// Novos campos para configuração do gráfico
+	->addFieldsGroup(
+		getGraphFieldsGroupView($data['fields'])
+	)
 	->includeJsFile('widget.edit.js.php')
 	->addJavaScript('widget_slareport_graph_form.init('.json_encode([
 		'serviceid_field_id' => $data['fields']['serviceid']->getName()
 	], JSON_THROW_ON_ERROR).');')
 	->show();
+
+function getGraphFieldsGroupView(array $fields): CWidgetFieldsGroupView {
+	return (new CWidgetFieldsGroupView(_('Graph settings')))
+		->addField(
+			new CWidgetFieldSelectView($fields['graph_type'])
+		)
+		->addField(
+			new CWidgetFieldSelectView($fields['graph_period'])
+		)
+		->addField(
+			new CWidgetFieldIntegerBoxView($fields['threshold_warning'])
+		)
+		->addField(
+			new CWidgetFieldIntegerBoxView($fields['threshold_critical'])
+		);
+}

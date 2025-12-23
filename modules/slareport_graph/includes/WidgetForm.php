@@ -29,6 +29,7 @@ use Zabbix\Widgets\Fields\{
 	CWidgetFieldIntegerBox,
 	CWidgetFieldMultiSelectService,
 	CWidgetFieldMultiSelectSla,
+	CWidgetFieldSelect,
 	CWidgetFieldTimePeriod
 };
 
@@ -36,6 +37,18 @@ use Zabbix\Widgets\Fields\{
  * SLA report with Graph widget form.
  */
 class WidgetForm extends CWidgetForm {
+
+	// Constantes para tipos de gráfico
+	public const GRAPH_TYPE_LINE = 0;
+	public const GRAPH_TYPE_BAR = 1;
+	public const GRAPH_TYPE_AREA = 2;
+
+	// Constantes para períodos do gráfico
+	public const GRAPH_PERIOD_7_DAYS = 7;
+	public const GRAPH_PERIOD_30_DAYS = 30;
+	public const GRAPH_PERIOD_90_DAYS = 90;
+	public const GRAPH_PERIOD_365_DAYS = 365;
+	public const GRAPH_PERIOD_CUSTOM = 0;
 
 	public function validate(bool $strict = false): array {
 		/** @var CWidgetFieldMultiSelectSla $slaid_field */
@@ -74,6 +87,7 @@ class WidgetForm extends CWidgetForm {
 
 	public function addFields(): self {
 		return $this
+			// Campos originais do SLA Report
 			->addField(
 				(new CWidgetFieldMultiSelectSla('slaid', _('SLA')))
 					->setFlags(CWidgetField::FLAG_NOT_EMPTY | CWidgetField::FLAG_LABEL_ASTERISK)
@@ -89,6 +103,32 @@ class WidgetForm extends CWidgetForm {
 			->addField(
 				(new CWidgetFieldTimePeriod('date_period'))
 					->setDateOnly()
+			)
+			// Novos campos para o gráfico
+			->addField(
+				(new CWidgetFieldSelect('graph_type', _('Graph type'), [
+					self::GRAPH_TYPE_LINE => _('Line'),
+					self::GRAPH_TYPE_BAR => _('Bar'),
+					self::GRAPH_TYPE_AREA => _('Area')
+				]))->setDefault(self::GRAPH_TYPE_LINE)
+			)
+			->addField(
+				(new CWidgetFieldSelect('graph_period', _('Graph period'), [
+					self::GRAPH_PERIOD_7_DAYS => _('Last 7 days'),
+					self::GRAPH_PERIOD_30_DAYS => _('Last 30 days'),
+					self::GRAPH_PERIOD_90_DAYS => _('Last 90 days'),
+					self::GRAPH_PERIOD_365_DAYS => _('Last 365 days'),
+					self::GRAPH_PERIOD_CUSTOM => _('Use report period')
+				]))->setDefault(self::GRAPH_PERIOD_30_DAYS)
+			)
+			// Campos para thresholds de alerta
+			->addField(
+				(new CWidgetFieldIntegerBox('threshold_warning', _('Warning threshold (%)'), 0, 100))
+					->setDefault(95)
+			)
+			->addField(
+				(new CWidgetFieldIntegerBox('threshold_critical', _('Critical threshold (%)'), 0, 100))
+					->setDefault(90)
 			);
 	}
 }

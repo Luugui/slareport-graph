@@ -21,6 +21,8 @@
  * @var array $data
  */
 
+use Widgets\SlaReportGraph\Includes\WidgetForm;
+
 $report = (new CTableInfo())->addClass(ZBX_STYLE_LIST_TABLE_STICKY_HEADER);
 
 if ($data['has_permissions_error']) {
@@ -139,8 +141,16 @@ if (!empty($data['graph_data'])) {
 		->addStyle('width: 100%; height: 200px; margin-bottom: 10px;');
 
 	$view->addItem($graph_container);
+	
+	// Passar dados para o JavaScript
 	$view->setVar('graph_data', $data['graph_data']);
 	$view->setVar('slo', isset($data['sla']) ? (float) $data['sla']['slo'] : 0);
+	
+	// Novos parâmetros de configuração do gráfico
+	$view->setVar('graph_type', $data['graph_type']);
+	$view->setVar('graph_period', $data['graph_period']);
+	$view->setVar('threshold_warning', $data['threshold_warning']);
+	$view->setVar('threshold_critical', $data['threshold_critical']);
 }
 
 // Adicionar a tabela de relatório

@@ -1,105 +1,126 @@
 # SLA Report with Graph Widget for Zabbix 7.0
 
-Este widget é uma variação do widget nativo **SLA report** do Zabbix, adicionando suporte para exibição de **gráficos de tendências** da disponibilidade de serviços SLA ao longo do tempo.
+Este widget é uma extensão do widget nativo "SLA Report" do Zabbix, adicionando suporte para exibição de gráficos de tendências de SLI (Service Level Indicator) ao longo do tempo.
 
 ## Funcionalidades
 
-- **Tabela de Relatório SLA**: Exibe os mesmos dados do widget original (SLO, SLI, Uptime, Downtime, Error Budget, etc.).
-- **Gráfico de Tendências SLI**: Exibe um gráfico SVG interativo mostrando a evolução do SLI (Service Level Indicator) ao longo do tempo.
-- **Linha de Referência SLO**: O gráfico inclui uma linha tracejada indicando o objetivo de nível de serviço (SLO).
-- **Indicadores Visuais**: Pontos no gráfico são coloridos em verde (acima do SLO) ou vermelho (abaixo do SLO).
-- **Tooltips**: Ao passar o mouse sobre os pontos, são exibidas informações detalhadas (data e valor do SLI).
+### Funcionalidades Base
+- Exibição de relatório SLA com tabela de dados
+- Visualização de SLI, SLO, Uptime, Downtime e Error Budget
+- Suporte a múltiplos serviços e períodos
 
-## Requisitos
+### Novas Funcionalidades (v2.0)
 
-- **Zabbix 7.0.x** (testado com 7.0.10)
-- SLA e Serviços configurados no Zabbix
+#### 1. Seletor de Tipo de Gráfico
+Escolha entre três tipos de visualização:
+- **Linha**: Gráfico de linha tradicional com pontos de dados
+- **Barras**: Gráfico de barras verticais coloridas por status
+- **Área**: Gráfico de área preenchida com linha de contorno
+
+#### 2. Período Customizável para o Gráfico
+Selecione o período de dados exibido no gráfico:
+- Últimos 7 dias
+- Últimos 30 dias
+- Últimos 90 dias
+- Últimos 365 dias
+- Usar período do relatório (customizado)
+
+#### 3. Alertas Visuais e Thresholds
+Configure thresholds para alertas visuais:
+- **Threshold de Warning (%)**: Valor abaixo do qual o status é "Warning" (padrão: 95%)
+- **Threshold de Critical (%)**: Valor abaixo do qual o status é "Critical" (padrão: 90%)
+
+O gráfico exibe:
+- **Zona verde**: SLI acima do threshold de warning
+- **Zona amarela**: SLI entre warning e critical
+- **Zona vermelha**: SLI abaixo do threshold critical
+- **Linha do SLO**: Linha tracejada roxa indicando o objetivo de nível de serviço
+- **Pontos coloridos**: Verde (OK), Amarelo (Warning), Vermelho (Critical)
 
 ## Instalação
 
-### Opção 1: Via arquivo ZIP
+### Requisitos
+- Zabbix 7.0.x
 
-1. Baixe o arquivo `slareport_graph.zip` da pasta `modules/` deste repositório.
-2. Descompacte o arquivo no diretório `modules/` do seu frontend Zabbix:
+### Passos
 
-```bash
-# Navegue até o diretório raiz do frontend Zabbix
-cd /usr/share/zabbix/
+1. **Baixe o arquivo ZIP** ou clone o repositório:
+   ```bash
+   git clone https://github.com/Luugui/slareport-graph.git
+   ```
 
-# Descompacte o arquivo ZIP no diretório modules/
-sudo unzip /caminho/para/slareport_graph.zip -d modules/
-```
+2. **Copie a pasta do módulo** para o diretório `modules/` do seu frontend Zabbix:
+   ```bash
+   cd /usr/share/zabbix/
+   sudo unzip /caminho/para/slareport_graph.zip -d modules/
+   ```
 
-3. Acesse o frontend do Zabbix.
-4. Vá para **Administration** > **General** > **Modules**.
-5. Clique em **Scan directory** para detectar o novo módulo.
-6. Ative o módulo **SLA report with Graph**.
+3. **Ajuste as permissões** (se necessário):
+   ```bash
+   sudo chown -R www-data:www-data /usr/share/zabbix/modules/slareport_graph
+   sudo chmod -R 755 /usr/share/zabbix/modules/slareport_graph
+   ```
 
-### Opção 2: Via Git Clone
+4. **Registre o módulo** no Zabbix:
+   - Acesse o frontend do Zabbix
+   - Vá para **Administration** > **General** > **Modules**
+   - Clique em **Scan directory** para detectar o novo módulo
+   - Ative o módulo **SLA report with Graph**
 
-```bash
-# Clone o repositório
-git clone https://github.com/Luugui/slareport-graph.git
+5. **Adicione o widget** a um dashboard e configure conforme necessário.
 
-# Copie o diretório do widget para o frontend Zabbix
-sudo cp -r slareport-graph/modules/slareport_graph /usr/share/zabbix/modules/
-```
+## Configuração do Widget
 
-Em seguida, siga os passos 3-6 da Opção 1 para ativar o módulo.
-
-## Configuração
-
-1. Adicione o widget a um dashboard.
-2. Configure o widget selecionando:
-   - **SLA**: O SLA que deseja monitorar.
-   - **Service** (opcional): Um serviço específico para exibir detalhes.
-   - **Show periods**: Número de períodos a serem exibidos.
-   - **Date period**: Período de tempo para o relatório.
+| Campo | Descrição |
+|-------|-----------|
+| SLA | Selecione o SLA a ser exibido |
+| Service | (Opcional) Filtre por um serviço específico |
+| Show periods | Número de períodos a exibir na tabela |
+| Date period | Período de datas para o relatório |
+| **Graph type** | Tipo de gráfico: Line, Bar ou Area |
+| **Graph period** | Período de dados do gráfico |
+| **Warning threshold** | Threshold de warning em % |
+| **Critical threshold** | Threshold de critical em % |
 
 ## Estrutura de Arquivos
 
 ```
 modules/
 └── slareport_graph/
-    ├── Widget.php              # Classe principal do widget
-    ├── manifest.json           # Configuração do widget/módulo
+    ├── Widget.php
+    ├── manifest.json
     ├── actions/
-    │   └── WidgetView.php      # Controller para a visualização
+    │   └── WidgetView.php
     ├── assets/
     │   └── js/
-    │       └── class.widget.js # JavaScript para renderização do gráfico SVG
+    │       └── class.widget.js
     ├── includes/
-    │   └── WidgetForm.php      # Formulário de configuração do widget
+    │   └── WidgetForm.php
     └── views/
-        ├── widget.view.php     # View principal do widget
-        ├── widget.edit.php     # View de edição do widget
-        └── widget.edit.js.php  # JavaScript para o formulário de edição
+        ├── widget.view.php
+        ├── widget.edit.php
+        └── widget.edit.js.php
 ```
 
-## Solução de Problemas
+## Changelog
 
-### O módulo não aparece na lista de módulos
+### v2.0.0
+- Adicionado seletor de tipo de gráfico (Linha, Barras, Área)
+- Adicionado período customizável para o gráfico
+- Adicionados alertas visuais com thresholds configuráveis
+- Zonas coloridas no gráfico (verde, amarelo, vermelho)
+- Legenda no gráfico
+- Pontos coloridos baseados nos thresholds
 
-1. Verifique se o diretório `slareport_graph` está dentro de `/usr/share/zabbix/modules/`.
-2. Verifique as permissões dos arquivos:
-   ```bash
-   sudo chown -R www-data:www-data /usr/share/zabbix/modules/slareport_graph
-   sudo chmod -R 755 /usr/share/zabbix/modules/slareport_graph
-   ```
-3. Clique em **Scan directory** na página de módulos do Zabbix.
-
-### Erro ao ativar o módulo
-
-Verifique o log de erro do PHP do seu servidor web (geralmente em `/var/log/apache2/error.log` ou `/var/log/nginx/error.log`).
+### v1.0.0
+- Versão inicial com gráfico de linha de tendências SLI
+- Baseado no widget slareport do Zabbix 7.0
 
 ## Licença
 
-Este projeto é distribuído sob a licença **GNU Affero General Public License v3.0**, a mesma licença do Zabbix.
-
-## Contribuições
-
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests.
+GNU Affero General Public License v3.0
 
 ## Autor
 
-Desenvolvido por **Manus** com base no widget original do Zabbix.
+Baseado no widget slareport do Zabbix.
+Extensão desenvolvida para adicionar funcionalidades de gráficos de tendências.

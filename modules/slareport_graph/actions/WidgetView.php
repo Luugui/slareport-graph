@@ -27,6 +27,8 @@ use API,
 	CWebUser,
 	DateTimeZone;
 
+use Widgets\SlaReportGraph\Includes\WidgetForm;
+
 class WidgetView extends CControllerDashboardWidgetView {
 
 	protected function doAction(): void {
@@ -42,7 +44,12 @@ class WidgetView extends CControllerDashboardWidgetView {
 			'user' => [
 				'debug_mode' => $this->getDebugMode()
 			],
-			'graph_data' => []
+			'graph_data' => [],
+			// Novos campos para configuração do gráfico
+			'graph_type' => $this->fields_values['graph_type'] ?? WidgetForm::GRAPH_TYPE_LINE,
+			'graph_period' => $this->fields_values['graph_period'] ?? WidgetForm::GRAPH_PERIOD_30_DAYS,
+			'threshold_warning' => $this->fields_values['threshold_warning'] ?? 95,
+			'threshold_critical' => $this->fields_values['threshold_critical'] ?? 90
 		];
 
 		$db_slas = $this->fields_values['slaid']
@@ -85,6 +92,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 
 					$range_time_parser = new CRangeTimeParser();
 
+					// Calcular período para o relatório
 					if ($this->fields_values['date_period']['from'] !== ''
 							&& $range_time_parser->parse($this->fields_values['date_period']['from']) == CParser::PARSE_SUCCESS) {
 						$period_from = $range_time_parser->getDateTime(true, $timezone)->getTimestamp();
@@ -113,6 +121,45 @@ class WidgetView extends CControllerDashboardWidgetView {
 						$period_to = null;
 					}
 
+					// Calcular período para o gráfico (pode ser diferente do relatório)
+					$graph_period_days = $data['graph_period'];
+					
+					if ($graph_period_days == WidgetForm::GRAPH_PERIOD_CUSTOM) {
+						// Usar o mesmo período do relatório
+						$graph_period_from = $period_from;
+						$graph_period_to = $period_to;
+						$graph_periods_count = $this->fields_values['show_periods'] !== '' 
+							? $this->fields_values['show_periods'] 
+							: ZBX_SLA_DEFAULT_REPORTING_PERIODS;
+					}
+					else {
+						// Calcular período baseado nos dias selecionados
+						$graph_period_to = time();
+						$graph_period_from = strtotime("-{$graph_period_days} days");
+						
+						// Calcular número de períodos baseado no período do SLA
+						switch ($data['sla']['period']) {
+							case ZBX_SLA_PERIOD_DAILY:
+								$graph_periods_count = min($graph_period_days, ZBX_SLA_MAX_REPORTING_PERIODS);
+								break;
+							case ZBX_SLA_PERIOD_WEEKLY:
+								$graph_periods_count = min(ceil($graph_period_days / 7), ZBX_SLA_MAX_REPORTING_PERIODS);
+								break;
+							case ZBX_SLA_PERIOD_MONTHLY:
+								$graph_periods_count = min(ceil($graph_period_days / 30), ZBX_SLA_MAX_REPORTING_PERIODS);
+								break;
+							case ZBX_SLA_PERIOD_QUARTERLY:
+								$graph_periods_count = min(ceil($graph_period_days / 90), ZBX_SLA_MAX_REPORTING_PERIODS);
+								break;
+							case ZBX_SLA_PERIOD_ANNUALLY:
+								$graph_periods_count = min(ceil($graph_period_days / 365), ZBX_SLA_MAX_REPORTING_PERIODS);
+								break;
+							default:
+								$graph_periods_count = ZBX_SLA_DEFAULT_REPORTING_PERIODS;
+						}
+					}
+
+					// Buscar dados para o relatório
 					$data['sli'] = API::Sla()->getSli([
 						'slaid' => $data['sla']['slaid'],
 						'serviceids' => array_slice(array_keys($data['services']), 0, $data['rows_per_page']),
@@ -121,13 +168,22 @@ class WidgetView extends CControllerDashboardWidgetView {
 						'period_to' => $period_to
 					]);
 
+					// Buscar dados para o gráfico (pode ter mais períodos)
+					$graph_sli = API::Sla()->getSli([
+						'slaid' => $data['sla']['slaid'],
+						'serviceids' => array_slice(array_keys($data['services']), 0, 1), // Apenas o primeiro serviço para o gráfico
+						'periods' => (int) $graph_periods_count,
+						'period_from' => $graph_period_from,
+						'period_to' => $graph_period_to
+					]);
+
 					// Preparar dados para o gráfico de tendências
-					if (isset($data['sli']['periods']) && isset($data['sli']['sli']) && !empty($data['sli']['serviceids'])) {
+					if (isset($graph_sli['periods']) && isset($graph_sli['sli']) && !empty($graph_sli['serviceids'])) {
 						$service_index = 0;
 
-						foreach ($data['sli']['periods'] as $period_index => $period) {
-							if (isset($data['sli']['sli'][$period_index][$service_index])) {
-								$sli_value = $data['sli']['sli'][$period_index][$service_index]['sli'];
+						foreach ($graph_sli['periods'] as $period_index => $period) {
+							if (isset($graph_sli['sli'][$period_index][$service_index])) {
+								$sli_value = $graph_sli['sli'][$period_index][$service_index]['sli'];
 								$data['graph_data'][] = [
 									'clock' => (int) $period['period_from'],
 									'value' => $sli_value !== null ? (float) $sli_value : 0.0,
