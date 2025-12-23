@@ -15,7 +15,7 @@
 
 
 /**
- * SLA report widget form view.
+ * SLA report with Graph widget form view.
  *
  * @var CView $this
  * @var array $data
@@ -38,7 +38,7 @@
 			->setToPlaceholder(_('YYYY-MM-DD'))
 	)
 	->includeJsFile('widget.edit.js.php')
-	->initFormJs('widget_form.init('.json_encode([
+	->addJavaScript('widget_slareport_graph_form.init('.json_encode([
 		'serviceid_field_id' => $data['fields']['serviceid']->getName()
 	], JSON_THROW_ON_ERROR).');')
 	->show();

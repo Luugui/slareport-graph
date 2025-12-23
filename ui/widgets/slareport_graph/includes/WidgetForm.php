@@ -33,7 +33,7 @@ use Zabbix\Widgets\Fields\{
 };
 
 /**
- * SLA report widget form.
+ * SLA report with Graph widget form.
  */
 class WidgetForm extends CWidgetForm {
 

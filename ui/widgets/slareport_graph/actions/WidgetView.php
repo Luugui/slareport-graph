@@ -27,16 +27,9 @@ use API,
 	CWebUser,
 	DateTimeZone;
 
-class WidgetGraphView extends CControllerDashboardWidgetView {
+class WidgetView extends CControllerDashboardWidgetView {
 
 	protected function doAction(): void {
-		// Definir constantes se não existirem (valores padrão do Zabbix)
-		if (!defined('ZBX_GRAPH_WIDTH')) {
-			define('ZBX_GRAPH_WIDTH', 400);
-		}
-		if (!defined('ZBX_GRAPH_HEIGHT')) {
-			define('ZBX_GRAPH_HEIGHT', 150);
-		}
 		$data = [
 			'name' => $this->getInput('name', $this->widget->getDefaultName()),
 			'has_access' => [
@@ -48,7 +41,8 @@ class WidgetGraphView extends CControllerDashboardWidgetView {
 			'search_limit' => CSettingsHelper::get(CSettingsHelper::SEARCH_LIMIT),
 			'user' => [
 				'debug_mode' => $this->getDebugMode()
-			]
+			],
+			'graph_data' => []
 		];
 
 		$db_slas = $this->fields_values['slaid']
@@ -127,29 +121,26 @@ class WidgetGraphView extends CControllerDashboardWidgetView {
 						'period_to' => $period_to
 					]);
 
-					// Lógica para o gráfico de tendências: buscar dados de SLI para todos os períodos
-					$data['sli_history'] = API::Sla()->getSli([
-						'slaid' => $data['sla']['slaid'],
-						'serviceids' => array_slice(array_keys($data['services']), 0, 1), // Apenas o primeiro serviço para o gráfico
-						'periods' => null, // Buscar todos os períodos
-						'period_from' => $period_from,
-						'period_to' => $period_to
-					]);
+					// Preparar dados para o gráfico de tendências
+					if (isset($data['sli']['periods']) && isset($data['sli']['sli']) && !empty($data['sli']['serviceids'])) {
+						$service_index = 0;
 
-					$data['graph_data'] = [];
-					if (isset($data['sli_history']['periods']) && isset($data['sli_history']['sli'])) {
-						$service_id = array_keys($data['services'])[0];
-						$service_index = array_search($service_id, $data['sli_history']['serviceids']);
-
-						foreach ($data['sli_history']['periods'] as $period_index => $period) {
-							if (isset($data['sli_history']['sli'][$period_index][$service_index])) {
-								$sli_value = $data['sli_history']['sli'][$period_index][$service_index]['sli'];
+						foreach ($data['sli']['periods'] as $period_index => $period) {
+							if (isset($data['sli']['sli'][$period_index][$service_index])) {
+								$sli_value = $data['sli']['sli'][$period_index][$service_index]['sli'];
 								$data['graph_data'][] = [
-									'clock' => $period['period_from'],
-									'value' => $sli_value !== null ? (float) $sli_value : 0.0
+									'clock' => (int) $period['period_from'],
+									'value' => $sli_value !== null ? (float) $sli_value : 0.0,
+									'period_from' => (int) $period['period_from'],
+									'period_to' => (int) $period['period_to']
 								];
 							}
 						}
+
+						// Ordenar por timestamp
+						usort($data['graph_data'], function($a, $b) {
+							return $a['clock'] - $b['clock'];
+						});
 					}
 				}
 			}

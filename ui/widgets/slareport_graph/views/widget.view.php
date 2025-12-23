@@ -15,32 +15,18 @@
 
 
 /**
- * SLA report widget view.
+ * SLA report with Graph widget view.
  *
  * @var CView $this
  * @var array $data
  */
-
-
-use CSlaHelper;
-use CRoleHelper;
-use CTableInfo;
-use CCol;
-use CLink;
-use CUrl;
-use Zabbix\Widgets\CWidgetView;
-use CChart;
-
-
-
-
 
 $report = (new CTableInfo())->addClass(ZBX_STYLE_LIST_TABLE_STICKY_HEADER);
 
 if ($data['has_permissions_error']) {
 	$report->setNoDataMessage(_('No permissions to referred object or it does not exist!'));
 }
-elseif ($data['sla']['status'] != ZBX_SLA_STATUS_ENABLED) {
+elseif (!isset($data['sla']) || $data['sla']['status'] != ZBX_SLA_STATUS_ENABLED) {
 	$report->setNoDataMessage(_('SLA is disabled.'));
 }
 elseif (!$data['has_serviceid']) {
@@ -142,40 +128,22 @@ else {
 	}
 }
 
-if (isset($data['graph_data']) && $data['graph_data']) {
-	$graph_data = [
-		'data' => [
-			[
-				'name' => _('SLI'),
-				'values' => $data['graph_data'],
-				'color' => '#0070E0'
-			]
-		],
-		'options' => [
-			'type' => 'line',
-			'title' => _('Service Availability Trend (SLI)'),
-			'y_axis' => [
-				'label' => _('SLI (%)'),
-				'min' => 0,
-				'max' => 100
-			],
-			'x_axis' => [
-				'label' => _('Time')
-			]
-		]
-	];
+// Criar o container do widget
+$view = new CWidgetView($data);
 
-	$graph = (new CChart('sla_trend_graph'))
-		->setGraphData($graph_data)
-		->setWidth(ZBX_GRAPH_WIDTH)
-		->setHeight(ZBX_GRAPH_HEIGHT);
+// Adicionar o gráfico de tendências se houver dados
+if (!empty($data['graph_data'])) {
+	$graph_container = (new CDiv())
+		->setId('sla-trend-graph-'.uniqid())
+		->addClass('sla-trend-graph-container')
+		->addStyle('width: 100%; height: 200px; margin-bottom: 10px;');
 
-	(new CWidgetView($data))
-		->addItem($graph)
-		->addItem($report)
-		->show();
-} else {
-	(new CWidgetView($data))
-		->addItem($report)
-		->show();
+	$view->addItem($graph_container);
+	$view->setVar('graph_data', $data['graph_data']);
+	$view->setVar('slo', isset($data['sla']) ? (float) $data['sla']['slo'] : 0);
 }
+
+// Adicionar a tabela de relatório
+$view->addItem($report);
+
+$view->show();

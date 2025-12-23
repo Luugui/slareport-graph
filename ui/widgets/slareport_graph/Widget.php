@@ -18,9 +18,17 @@ namespace Widgets\SlaReportGraph;
 
 use Zabbix\Core\CWidget;
 
-class WidgetGraph extends CWidget {
+class Widget extends CWidget {
 
 	public function getDefaultName(): string {
 		return _('SLA report with Graph');
+	}
+
+	public function getTranslationStrings(): array {
+		return [
+			'class.widget.js' => [
+				'No data available' => _('No data available')
+			]
+		];
 	}
 }
