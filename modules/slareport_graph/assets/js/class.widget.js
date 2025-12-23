@@ -20,12 +20,17 @@ class CWidgetSlaReportGraph extends CWidget {
 	static GRAPH_TYPE_BAR = 1;
 	static GRAPH_TYPE_AREA = 2;
 
+	// Constantes para modo de exibição (devem corresponder ao PHP)
+	static DISPLAY_MODE_REPORT = 0;
+	static DISPLAY_MODE_SINGLE_ITEM = 1;
+
 	onInitialize() {
 		this._graph_data = [];
 		this._slo = 0;
 		this._graph_type = CWidgetSlaReportGraph.GRAPH_TYPE_LINE;
 		this._threshold_warning = 95;
 		this._threshold_critical = 90;
+		this._display_mode = CWidgetSlaReportGraph.DISPLAY_MODE_REPORT;
 		this._has_contents = false;
 	}
 
@@ -55,6 +60,7 @@ class CWidgetSlaReportGraph extends CWidget {
 			this._graph_type = response.graph_type !== undefined ? parseInt(response.graph_type) : CWidgetSlaReportGraph.GRAPH_TYPE_LINE;
 			this._threshold_warning = response.threshold_warning !== undefined ? parseInt(response.threshold_warning) : 95;
 			this._threshold_critical = response.threshold_critical !== undefined ? parseInt(response.threshold_critical) : 90;
+			this._display_mode = response.display_mode !== undefined ? parseInt(response.display_mode) : CWidgetSlaReportGraph.DISPLAY_MODE_REPORT;
 			this._has_contents = true;
 			this._renderGraph();
 		}
@@ -72,7 +78,7 @@ class CWidgetSlaReportGraph extends CWidget {
 		}
 
 		if (!this._graph_data || this._graph_data.length === 0) {
-			container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">' +
+			container.innerHTML = '<div style="text-align: center; padding: 10px; color: #999; font-size: 11px;">' +
 				t('No trend data available') + '</div>';
 			return;
 		}
@@ -80,10 +86,18 @@ class CWidgetSlaReportGraph extends CWidget {
 		// Limpar container
 		container.innerHTML = '';
 
+		// Verificar se é modo Single Item (mini gráfico)
+		const isSingleMode = this._display_mode === CWidgetSlaReportGraph.DISPLAY_MODE_SINGLE_ITEM;
+
 		// Dimensões do gráfico
 		const width = container.offsetWidth || 400;
-		const height = container.offsetHeight || 200;
-		const padding = {top: 25, right: 40, bottom: 40, left: 55};
+		const height = container.offsetHeight || (isSingleMode ? 60 : 200);
+		
+		// Padding reduzido para modo Single Item
+		const padding = isSingleMode 
+			? {top: 5, right: 5, bottom: 5, left: 5}
+			: {top: 25, right: 40, bottom: 40, left: 55};
+		
 		const graphWidth = width - padding.left - padding.right;
 		const graphHeight = height - padding.top - padding.bottom;
 
@@ -95,7 +109,9 @@ class CWidgetSlaReportGraph extends CWidget {
 
 		// Calcular escalas
 		const values = this._graph_data.map(d => d.value);
-		const minValue = Math.min(...values, this._slo, this._threshold_critical) - 5;
+		const minValue = isSingleMode 
+			? Math.min(...values) - 2
+			: Math.min(...values, this._slo, this._threshold_critical) - 5;
 		const maxValue = Math.max(...values, 100);
 		const minTime = Math.min(...this._graph_data.map(d => d.clock));
 		const maxTime = Math.max(...this._graph_data.map(d => d.clock));
@@ -103,6 +119,105 @@ class CWidgetSlaReportGraph extends CWidget {
 		const scaleX = (time) => padding.left + ((time - minTime) / (maxTime - minTime || 1)) * graphWidth;
 		const scaleY = (value) => padding.top + graphHeight - ((value - minValue) / (maxValue - minValue || 1)) * graphHeight;
 
+		if (isSingleMode) {
+			// Renderizar mini gráfico simplificado
+			this._renderMiniGraph(svg, padding, graphWidth, graphHeight, scaleX, scaleY);
+		}
+		else {
+			// Renderizar gráfico completo
+			this._renderFullGraph(svg, padding, width, graphWidth, graphHeight, scaleX, scaleY, minValue, maxValue, minTime, maxTime);
+		}
+
+		container.appendChild(svg);
+	}
+
+	_renderMiniGraph(svg, padding, graphWidth, graphHeight, scaleX, scaleY) {
+		// Área preenchida com gradiente
+		const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+		const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+		gradient.setAttribute('id', 'miniGradient');
+		gradient.setAttribute('x1', '0%');
+		gradient.setAttribute('y1', '0%');
+		gradient.setAttribute('x2', '0%');
+		gradient.setAttribute('y2', '100%');
+
+		const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+		stop1.setAttribute('offset', '0%');
+		stop1.setAttribute('style', 'stop-color:#1976d2;stop-opacity:0.3');
+		gradient.appendChild(stop1);
+
+		const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+		stop2.setAttribute('offset', '100%');
+		stop2.setAttribute('style', 'stop-color:#1976d2;stop-opacity:0.05');
+		gradient.appendChild(stop2);
+
+		defs.appendChild(gradient);
+		svg.appendChild(defs);
+
+		// Desenhar área
+		if (this._graph_data.length > 1) {
+			let areaPathD = `M ${scaleX(this._graph_data[0].clock)} ${padding.top + graphHeight}`;
+
+			for (let i = 0; i < this._graph_data.length; i++) {
+				const x = scaleX(this._graph_data[i].clock);
+				const y = scaleY(this._graph_data[i].value);
+				areaPathD += ` L ${x} ${y}`;
+			}
+
+			areaPathD += ` L ${scaleX(this._graph_data[this._graph_data.length - 1].clock)} ${padding.top + graphHeight} Z`;
+
+			const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			areaPath.setAttribute('d', areaPathD);
+			areaPath.setAttribute('fill', 'url(#miniGradient)');
+			svg.appendChild(areaPath);
+
+			// Linha de contorno
+			let linePathD = '';
+			for (let i = 0; i < this._graph_data.length; i++) {
+				const x = scaleX(this._graph_data[i].clock);
+				const y = scaleY(this._graph_data[i].value);
+
+				if (i === 0) {
+					linePathD += `M ${x} ${y}`;
+				} else {
+					linePathD += ` L ${x} ${y}`;
+				}
+			}
+
+			const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			linePath.setAttribute('d', linePathD);
+			linePath.setAttribute('stroke', '#1976d2');
+			linePath.setAttribute('stroke-width', '1.5');
+			linePath.setAttribute('fill', 'none');
+			svg.appendChild(linePath);
+		}
+
+		// Ponto final destacado
+		if (this._graph_data.length > 0) {
+			const lastPoint = this._graph_data[this._graph_data.length - 1];
+			const x = scaleX(lastPoint.clock);
+			const y = scaleY(lastPoint.value);
+
+			// Determinar cor baseada nos thresholds
+			let fillColor = '#4caf50';
+			if (lastPoint.value < this._threshold_critical) {
+				fillColor = '#f44336';
+			} else if (lastPoint.value < this._threshold_warning) {
+				fillColor = '#ffc107';
+			}
+
+			const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+			circle.setAttribute('cx', x);
+			circle.setAttribute('cy', y);
+			circle.setAttribute('r', '3');
+			circle.setAttribute('fill', fillColor);
+			circle.setAttribute('stroke', '#fff');
+			circle.setAttribute('stroke-width', '1');
+			svg.appendChild(circle);
+		}
+	}
+
+	_renderFullGraph(svg, padding, width, graphWidth, graphHeight, scaleX, scaleY, minValue, maxValue, minTime, maxTime) {
 		// Desenhar zonas de alerta (thresholds)
 		this._drawAlertZones(svg, padding, graphWidth, graphHeight, scaleY, minValue, maxValue);
 
@@ -140,8 +255,6 @@ class CWidgetSlaReportGraph extends CWidget {
 
 		// Legenda
 		this._drawLegend(svg, width, padding);
-
-		container.appendChild(svg);
 	}
 
 	_drawAlertZones(svg, padding, graphWidth, graphHeight, scaleY, minValue, maxValue) {

@@ -45,11 +45,30 @@ class WidgetView extends CControllerDashboardWidgetView {
 				'debug_mode' => $this->getDebugMode()
 			],
 			'graph_data' => [],
-			// Novos campos para configuração do gráfico
+			// Modo de exibição
+			'display_mode' => $this->fields_values['display_mode'] ?? WidgetForm::DISPLAY_MODE_REPORT,
+			// Configurações do gráfico
 			'graph_type' => $this->fields_values['graph_type'] ?? WidgetForm::GRAPH_TYPE_LINE,
 			'graph_period' => $this->fields_values['graph_period'] ?? WidgetForm::GRAPH_PERIOD_30_DAYS,
 			'threshold_warning' => $this->fields_values['threshold_warning'] ?? 95,
-			'threshold_critical' => $this->fields_values['threshold_critical'] ?? 90
+			'threshold_critical' => $this->fields_values['threshold_critical'] ?? 90,
+			// Configurações do Single Item
+			'show_graph_single' => $this->fields_values['show_graph_single'] ?? 1,
+			'show_slo_single' => $this->fields_values['show_slo_single'] ?? 1,
+			'show_error_budget' => $this->fields_values['show_error_budget'] ?? 1,
+			'bg_color' => $this->fields_values['bg_color'] ?? '',
+			// Dados do Single Item
+			'single_item' => [
+				'sli' => null,
+				'slo' => null,
+				'uptime' => null,
+				'downtime' => null,
+				'error_budget' => null,
+				'service_name' => null,
+				'sla_name' => null,
+				'period_from' => null,
+				'period_to' => null
+			]
 		];
 
 		$db_slas = $this->fields_values['slaid']
@@ -197,6 +216,36 @@ class WidgetView extends CControllerDashboardWidgetView {
 						usort($data['graph_data'], function($a, $b) {
 							return $a['clock'] - $b['clock'];
 						});
+					}
+
+					// Preparar dados para o modo Single Item
+					if ($data['display_mode'] == WidgetForm::DISPLAY_MODE_SINGLE_ITEM) {
+						$data['single_item']['sla_name'] = $data['sla']['name'];
+						$data['single_item']['slo'] = (float) $data['sla']['slo'];
+
+						// Pegar o primeiro serviço
+						if (!empty($data['services'])) {
+							$first_service_id = array_key_first($data['services']);
+							$data['single_item']['service_name'] = $data['services'][$first_service_id]['name'];
+						}
+
+						// Pegar o período mais recente do SLI
+						if (isset($data['sli']['periods']) && isset($data['sli']['sli']) && !empty($data['sli']['serviceids'])) {
+							$last_period_index = count($data['sli']['periods']) - 1;
+							$service_index = 0;
+
+							if (isset($data['sli']['sli'][$last_period_index][$service_index])) {
+								$sli_data = $data['sli']['sli'][$last_period_index][$service_index];
+								$period_data = $data['sli']['periods'][$last_period_index];
+
+								$data['single_item']['sli'] = $sli_data['sli'] !== null ? (float) $sli_data['sli'] : null;
+								$data['single_item']['uptime'] = $sli_data['uptime'];
+								$data['single_item']['downtime'] = $sli_data['downtime'];
+								$data['single_item']['error_budget'] = $sli_data['error_budget'];
+								$data['single_item']['period_from'] = (int) $period_data['period_from'];
+								$data['single_item']['period_to'] = (int) $period_data['period_to'];
+							}
+						}
 					}
 				}
 			}

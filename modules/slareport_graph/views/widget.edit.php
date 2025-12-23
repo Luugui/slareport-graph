@@ -22,6 +22,11 @@
  */
 
 (new CWidgetFormView($data))
+	// Modo de exibição
+	->addField(
+		new CWidgetFieldSelectView($data['fields']['display_mode'])
+	)
+	// Campos originais do SLA Report
 	->addField(
 		new CWidgetFieldMultiSelectSlaView($data['fields']['slaid'])
 	)
@@ -37,9 +42,13 @@
 			->setFromPlaceholder(_('YYYY-MM-DD'))
 			->setToPlaceholder(_('YYYY-MM-DD'))
 	)
-	// Novos campos para configuração do gráfico
+	// Configurações do gráfico
 	->addFieldsGroup(
 		getGraphFieldsGroupView($data['fields'])
+	)
+	// Configurações do Single Item
+	->addFieldsGroup(
+		getSingleItemFieldsGroupView($data['fields'])
 	)
 	->includeJsFile('widget.edit.js.php')
 	->addJavaScript('widget_slareport_graph_form.init('.json_encode([
@@ -60,5 +69,21 @@ function getGraphFieldsGroupView(array $fields): CWidgetFieldsGroupView {
 		)
 		->addField(
 			new CWidgetFieldIntegerBoxView($fields['threshold_critical'])
+		);
+}
+
+function getSingleItemFieldsGroupView(array $fields): CWidgetFieldsGroupView {
+	return (new CWidgetFieldsGroupView(_('Single item settings')))
+		->addField(
+			new CWidgetFieldCheckBoxView($fields['show_graph_single'])
+		)
+		->addField(
+			new CWidgetFieldCheckBoxView($fields['show_slo_single'])
+		)
+		->addField(
+			new CWidgetFieldCheckBoxView($fields['show_error_budget'])
+		)
+		->addField(
+			new CWidgetFieldColorView($fields['bg_color'])
 		);
 }

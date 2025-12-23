@@ -26,6 +26,8 @@ use Zabbix\Widgets\{
 };
 
 use Zabbix\Widgets\Fields\{
+	CWidgetFieldCheckBox,
+	CWidgetFieldColor,
 	CWidgetFieldIntegerBox,
 	CWidgetFieldMultiSelectService,
 	CWidgetFieldMultiSelectSla,
@@ -37,6 +39,10 @@ use Zabbix\Widgets\Fields\{
  * SLA report with Graph widget form.
  */
 class WidgetForm extends CWidgetForm {
+
+	// Constantes para modo de exibição
+	public const DISPLAY_MODE_REPORT = 0;
+	public const DISPLAY_MODE_SINGLE_ITEM = 1;
 
 	// Constantes para tipos de gráfico
 	public const GRAPH_TYPE_LINE = 0;
@@ -87,6 +93,13 @@ class WidgetForm extends CWidgetForm {
 
 	public function addFields(): self {
 		return $this
+			// Modo de exibição
+			->addField(
+				(new CWidgetFieldSelect('display_mode', _('Display mode'), [
+					self::DISPLAY_MODE_REPORT => _('Report with graph'),
+					self::DISPLAY_MODE_SINGLE_ITEM => _('Single item')
+				]))->setDefault(self::DISPLAY_MODE_REPORT)
+			)
 			// Campos originais do SLA Report
 			->addField(
 				(new CWidgetFieldMultiSelectSla('slaid', _('SLA')))
@@ -104,7 +117,7 @@ class WidgetForm extends CWidgetForm {
 				(new CWidgetFieldTimePeriod('date_period'))
 					->setDateOnly()
 			)
-			// Novos campos para o gráfico
+			// Campos para o gráfico
 			->addField(
 				(new CWidgetFieldSelect('graph_type', _('Graph type'), [
 					self::GRAPH_TYPE_LINE => _('Line'),
@@ -129,6 +142,19 @@ class WidgetForm extends CWidgetForm {
 			->addField(
 				(new CWidgetFieldIntegerBox('threshold_critical', _('Critical threshold (%)'), 0, 100))
 					->setDefault(90)
+			)
+			// Campos para Single Item
+			->addField(
+				(new CWidgetFieldCheckBox('show_graph_single', _('Show mini graph')))->setDefault(1)
+			)
+			->addField(
+				(new CWidgetFieldCheckBox('show_slo_single', _('Show SLO')))->setDefault(1)
+			)
+			->addField(
+				(new CWidgetFieldCheckBox('show_error_budget', _('Show error budget')))->setDefault(1)
+			)
+			->addField(
+				(new CWidgetFieldColor('bg_color', _('Background color')))->setDefault('')
 			);
 	}
 }
