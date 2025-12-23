@@ -27,7 +27,7 @@ use API,
 	CWebUser,
 	DateTimeZone;
 
-class WidgetView extends CControllerDashboardWidgetView {
+class WidgetGraphView extends CControllerDashboardWidgetView {
 
 	protected function doAction(): void {
 		$data = [
