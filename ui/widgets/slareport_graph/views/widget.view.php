@@ -21,6 +21,16 @@
  * @var array $data
  */
 
+use CChart;
+
+// Definir constantes se não existirem (valores padrão do Zabbix)
+if (!defined('ZBX_GRAPH_WIDTH')) {
+	define('ZBX_GRAPH_WIDTH', 400);
+}
+if (!defined('ZBX_GRAPH_HEIGHT')) {
+	define('ZBX_GRAPH_HEIGHT', 150);
+}
+
 $report = (new CTableInfo())->addClass(ZBX_STYLE_LIST_TABLE_STICKY_HEADER);
 
 if ($data['has_permissions_error']) {
