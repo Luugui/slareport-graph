@@ -15,22 +15,42 @@
 
 class CWidgetSlaReportGraph extends CWidget {
 
-	onStart() {
-		super.onStart();
+	onInitialize() {
+		this._graph_data = [];
+		this._slo = 0;
+		this._has_contents = false;
 	}
 
 	onActivate() {
-		super.onActivate();
-		this._renderGraph();
+		if (this._has_contents) {
+			this._renderGraph();
+		}
 	}
 
 	onDeactivate() {
-		super.onDeactivate();
+		// Cleanup if needed
 	}
 
-	setContents(response) {
-		super.setContents(response);
-		this._renderGraph();
+	onResize() {
+		if (this._has_contents) {
+			this._renderGraph();
+		}
+	}
+
+	processUpdateResponse(response) {
+		super.processUpdateResponse(response);
+
+		// Os dados são passados via setVar no PHP e chegam no response
+		if (response.graph_data !== undefined && response.graph_data.length > 0) {
+			this._graph_data = response.graph_data;
+			this._slo = response.slo || 0;
+			this._has_contents = true;
+			this._renderGraph();
+		}
+		else {
+			this._has_contents = false;
+			this._graph_data = [];
+		}
 	}
 
 	_renderGraph() {
@@ -40,12 +60,9 @@ class CWidgetSlaReportGraph extends CWidget {
 			return;
 		}
 
-		const graph_data = this._getVar('graph_data');
-		const slo = this._getVar('slo') || 0;
-
-		if (!graph_data || graph_data.length === 0) {
+		if (!this._graph_data || this._graph_data.length === 0) {
 			container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">' +
-				this._t('No data available') + '</div>';
+				t('No trend data available') + '</div>';
 			return;
 		}
 
@@ -55,7 +72,7 @@ class CWidgetSlaReportGraph extends CWidget {
 		// Dimensões do gráfico
 		const width = container.offsetWidth || 400;
 		const height = container.offsetHeight || 200;
-		const padding = {top: 20, right: 20, bottom: 40, left: 50};
+		const padding = {top: 20, right: 30, bottom: 40, left: 50};
 		const graphWidth = width - padding.left - padding.right;
 		const graphHeight = height - padding.top - padding.bottom;
 
@@ -66,11 +83,11 @@ class CWidgetSlaReportGraph extends CWidget {
 		svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
 		// Calcular escalas
-		const values = graph_data.map(d => d.value);
-		const minValue = Math.min(...values, slo) - 5;
+		const values = this._graph_data.map(d => d.value);
+		const minValue = Math.min(...values, this._slo) - 5;
 		const maxValue = Math.max(...values, 100);
-		const minTime = Math.min(...graph_data.map(d => d.clock));
-		const maxTime = Math.max(...graph_data.map(d => d.clock));
+		const minTime = Math.min(...this._graph_data.map(d => d.clock));
+		const maxTime = Math.max(...this._graph_data.map(d => d.clock));
 
 		const scaleX = (time) => padding.left + ((time - minTime) / (maxTime - minTime || 1)) * graphWidth;
 		const scaleY = (value) => padding.top + graphHeight - ((value - minValue) / (maxValue - minValue || 1)) * graphHeight;
@@ -100,8 +117,8 @@ class CWidgetSlaReportGraph extends CWidget {
 		}
 
 		// Desenhar linha do SLO
-		if (slo > minValue && slo < maxValue) {
-			const sloY = scaleY(slo);
+		if (this._slo > minValue && this._slo < maxValue) {
+			const sloY = scaleY(this._slo);
 
 			const sloLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
 			sloLine.setAttribute('x1', padding.left);
@@ -122,13 +139,31 @@ class CWidgetSlaReportGraph extends CWidget {
 			svg.appendChild(sloText);
 		}
 
+		// Desenhar área preenchida primeiro (para ficar atrás da linha)
+		if (this._graph_data.length > 1) {
+			let areaPathD = `M ${scaleX(this._graph_data[0].clock)} ${padding.top + graphHeight}`;
+
+			for (let i = 0; i < this._graph_data.length; i++) {
+				const x = scaleX(this._graph_data[i].clock);
+				const y = scaleY(this._graph_data[i].value);
+				areaPathD += ` L ${x} ${y}`;
+			}
+
+			areaPathD += ` L ${scaleX(this._graph_data[this._graph_data.length - 1].clock)} ${padding.top + graphHeight} Z`;
+
+			const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			areaPath.setAttribute('d', areaPathD);
+			areaPath.setAttribute('fill', 'rgba(25, 118, 210, 0.1)');
+			svg.appendChild(areaPath);
+		}
+
 		// Desenhar linha do gráfico
-		if (graph_data.length > 1) {
+		if (this._graph_data.length > 1) {
 			let pathD = '';
 
-			for (let i = 0; i < graph_data.length; i++) {
-				const x = scaleX(graph_data[i].clock);
-				const y = scaleY(graph_data[i].value);
+			for (let i = 0; i < this._graph_data.length; i++) {
+				const x = scaleX(this._graph_data[i].clock);
+				const y = scaleY(this._graph_data[i].value);
 
 				if (i === 0) {
 					pathD += `M ${x} ${y}`;
@@ -143,32 +178,25 @@ class CWidgetSlaReportGraph extends CWidget {
 			path.setAttribute('stroke-width', '2');
 			path.setAttribute('fill', 'none');
 			svg.appendChild(path);
-
-			// Área preenchida
-			const areaPathD = pathD + ` L ${scaleX(graph_data[graph_data.length - 1].clock)} ${padding.top + graphHeight} L ${scaleX(graph_data[0].clock)} ${padding.top + graphHeight} Z`;
-			const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-			areaPath.setAttribute('d', areaPathD);
-			areaPath.setAttribute('fill', 'rgba(25, 118, 210, 0.1)');
-			svg.appendChild(areaPath);
 		}
 
 		// Desenhar pontos
-		for (let i = 0; i < graph_data.length; i++) {
-			const x = scaleX(graph_data[i].clock);
-			const y = scaleY(graph_data[i].value);
+		for (let i = 0; i < this._graph_data.length; i++) {
+			const x = scaleX(this._graph_data[i].clock);
+			const y = scaleY(this._graph_data[i].value);
 
 			const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
 			circle.setAttribute('cx', x);
 			circle.setAttribute('cy', y);
 			circle.setAttribute('r', '4');
-			circle.setAttribute('fill', graph_data[i].value >= slo ? '#4caf50' : '#f44336');
+			circle.setAttribute('fill', this._graph_data[i].value >= this._slo ? '#4caf50' : '#f44336');
 			circle.setAttribute('stroke', '#fff');
 			circle.setAttribute('stroke-width', '1');
 
 			// Tooltip
 			const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-			const date = new Date(graph_data[i].clock * 1000);
-			title.textContent = `${date.toLocaleDateString()}: ${graph_data[i].value.toFixed(2)}%`;
+			const date = new Date(this._graph_data[i].clock * 1000);
+			title.textContent = `${date.toLocaleDateString()}: ${this._graph_data[i].value.toFixed(2)}%`;
 			circle.appendChild(title);
 
 			svg.appendChild(circle);
@@ -196,12 +224,12 @@ class CWidgetSlaReportGraph extends CWidget {
 		svg.appendChild(yAxis);
 
 		// Labels do eixo X (datas)
-		const numLabels = Math.min(graph_data.length, 5);
-		const step = Math.floor(graph_data.length / numLabels) || 1;
+		const numLabels = Math.min(this._graph_data.length, 5);
+		const step = Math.floor(this._graph_data.length / numLabels) || 1;
 
-		for (let i = 0; i < graph_data.length; i += step) {
-			const x = scaleX(graph_data[i].clock);
-			const date = new Date(graph_data[i].clock * 1000);
+		for (let i = 0; i < this._graph_data.length; i += step) {
+			const x = scaleX(this._graph_data[i].clock);
+			const date = new Date(this._graph_data[i].clock * 1000);
 
 			const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
 			text.setAttribute('x', x);
@@ -221,7 +249,7 @@ class CWidgetSlaReportGraph extends CWidget {
 		title.setAttribute('font-size', '12');
 		title.setAttribute('font-weight', 'bold');
 		title.setAttribute('fill', '#333');
-		title.textContent = 'SLI Trend';
+		title.textContent = t('SLI Trend');
 		svg.appendChild(title);
 
 		container.appendChild(svg);
