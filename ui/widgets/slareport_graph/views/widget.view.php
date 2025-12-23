@@ -21,6 +21,14 @@
  * @var array $data
  */
 
+
+use CSlaHelper;
+use CRoleHelper;
+use CTableInfo;
+use CCol;
+use CLink;
+use CUrl;
+use Zabbix\Widgets\CWidgetView;
 use CChart;
 
 // Definir constantes se não existirem (valores padrão do Zabbix)
@@ -30,6 +38,10 @@ if (!defined('ZBX_GRAPH_WIDTH')) {
 if (!defined('ZBX_GRAPH_HEIGHT')) {
 	define('ZBX_GRAPH_HEIGHT', 150);
 }
+
+
+
+
 
 $report = (new CTableInfo())->addClass(ZBX_STYLE_LIST_TABLE_STICKY_HEADER);
 
