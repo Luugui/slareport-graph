@@ -31,14 +31,6 @@ use CUrl;
 use Zabbix\Widgets\CWidgetView;
 use CChart;
 
-// Definir constantes se não existirem (valores padrão do Zabbix)
-if (!defined('ZBX_GRAPH_WIDTH')) {
-	define('ZBX_GRAPH_WIDTH', 400);
-}
-if (!defined('ZBX_GRAPH_HEIGHT')) {
-	define('ZBX_GRAPH_HEIGHT', 150);
-}
-
 
 
 

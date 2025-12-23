@@ -30,6 +30,13 @@ use API,
 class WidgetGraphView extends CControllerDashboardWidgetView {
 
 	protected function doAction(): void {
+		// Definir constantes se não existirem (valores padrão do Zabbix)
+		if (!defined('ZBX_GRAPH_WIDTH')) {
+			define('ZBX_GRAPH_WIDTH', 400);
+		}
+		if (!defined('ZBX_GRAPH_HEIGHT')) {
+			define('ZBX_GRAPH_HEIGHT', 150);
+		}
 		$data = [
 			'name' => $this->getInput('name', $this->widget->getDefaultName()),
 			'has_access' => [
