@@ -70,7 +70,11 @@ class CWidgetSlaReportGraph extends CWidget {
 			this._display_mode = response.display_mode !== undefined ? parseInt(response.display_mode) : CWidgetSlaReportGraph.DISPLAY_MODE_REPORT;
 			this._show_content = response.show_content !== undefined ? parseInt(response.show_content) : CWidgetSlaReportGraph.SHOW_GRAPH_AND_TABLE;
 			this._has_contents = true;
-			this._renderGraph();
+			
+			// Aguardar o DOM estar pronto antes de renderizar o gráfico
+			setTimeout(() => {
+				this._renderGraph();
+			}, 100);
 		}
 		else {
 			this._has_contents = false;
