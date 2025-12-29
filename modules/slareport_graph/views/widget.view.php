@@ -187,6 +187,7 @@ function renderSingleItemMode(CWidgetView $view, array $data): void {
 		$view->setVar('threshold_warning', $data['threshold_warning']);
 		$view->setVar('threshold_critical', $data['threshold_critical']);
 		$view->setVar('display_mode', $data['display_mode']);
+		$view->setVar('show_content', $data['show_content']);
 		$view->setVar('single_item', $data['single_item']);
 	}
 }
@@ -195,127 +196,134 @@ function renderSingleItemMode(CWidgetView $view, array $data): void {
  * Renderiza o modo Report (padrão)
  */
 function renderReportMode(CWidgetView $view, array $data): void {
-	$report = (new CTableInfo())->addClass(ZBX_STYLE_LIST_TABLE_STICKY_HEADER);
+	$show_content = $data['show_content'] ?? WidgetForm::SHOW_GRAPH_AND_TABLE;
 
-	if (!$data['has_serviceid']) {
-		$header = [
-			_x('Service', 'compact table header'),
-			_x('SLO', 'compact table header')
-		];
+	// Adicionar o gráfico se necessário
+	if ($show_content == WidgetForm::SHOW_GRAPH_AND_TABLE || $show_content == WidgetForm::SHOW_GRAPH_ONLY) {
+		if (!empty($data['graph_data'])) {
+			$graph_container = (new CDiv())
+				->setId('sla-trend-graph-'.uniqid())
+				->addClass('sla-trend-graph-container')
+				->addStyle('width: 100%; height: 300px; margin-bottom: 10px;');
 
-		foreach ($data['sli']['periods'] as $period) {
-			$header[] = CSlaHelper::getPeriodTag((int) $data['sla']['period'], $period['period_from'], $period['period_to'],
-				$data['sla']['timezone'], $data['sla']['period'] != ZBX_SLA_PERIOD_ANNUALLY
-			);
+			$view->addItem($graph_container);
+			
+			// Passar dados para o JavaScript
+			$view->setVar('graph_data', $data['graph_data']);
+			$view->setVar('slo', (float) $data['sla']['slo']);
+			$view->setVar('graph_type', $data['graph_type']);
+			$view->setVar('graph_period', $data['graph_period']);
+			$view->setVar('threshold_warning', $data['threshold_warning']);
+			$view->setVar('threshold_critical', $data['threshold_critical']);
+			$view->setVar('display_mode', $data['display_mode']);
+			$view->setVar('show_content', $show_content);
 		}
+	}
 
-		$report->setHeader($header);
+	// Adicionar a tabela se necessário
+	if ($show_content == WidgetForm::SHOW_GRAPH_AND_TABLE || $show_content == WidgetForm::SHOW_TABLE_ONLY) {
+		$report = (new CTableInfo())->addClass(ZBX_STYLE_LIST_TABLE_STICKY_HEADER);
 
-		$service_index = array_flip($data['sli']['serviceids']);
-
-		$num_rows_displayed = 0;
-
-		foreach (array_intersect_key($data['services'], $service_index) as $serviceid => $service) {
-			$row = [
-				(new CCol($data['has_access'][CRoleHelper::ACTIONS_MANAGE_SLA]
-					? new CLink(
-						$service['name'],
-						(new CUrl('zabbix.php'))
-							->setArgument('action', 'slareport.list')
-							->setArgument('filter_slaid', $data['sla']['slaid'])
-							->setArgument('filter_serviceid', $serviceid)
-							->setArgument('filter_set', 1)
-							->getUrl()
-					)
-					: $service['name']
-				))->addClass(ZBX_STYLE_WORDBREAK),
-				CSlaHelper::getSloTag((float) $data['sla']['slo'])
+		if (!$data['has_serviceid']) {
+			$header = [
+				_x('Service', 'compact table header'),
+				_x('SLO', 'compact table header')
 			];
 
-			foreach (array_keys($data['sli']['periods']) as $period_index) {
-				$row[] = CSlaHelper::getSliTag(
-					$data['sli']['sli'][$period_index][$service_index[$serviceid]]['sli'],
-					(float) $data['sla']['slo']
+			foreach ($data['sli']['periods'] as $period) {
+				$header[] = CSlaHelper::getPeriodTag((int) $data['sla']['period'], $period['period_from'], $period['period_to'],
+					$data['sla']['timezone'], $data['sla']['period'] != ZBX_SLA_PERIOD_ANNUALLY
 				);
 			}
 
-			$report->addRow($row);
+			$report->setHeader($header);
 
-			if (++$num_rows_displayed == $data['rows_per_page']) {
-				break;
-			}
-		}
+			$service_index = array_flip($data['sli']['serviceids']);
 
-		$total = count($data['services']) > $data['search_limit']
-			? $data['search_limit'].'+'
-			: count($data['services']);
+			$num_rows_displayed = 0;
 
-		if ($total > 0) {
-			$report->setFooter(
-				(new CCol(_s('Displaying %1$s of %2$s found', $num_rows_displayed, $total)))
-					->setColSpan($report->getNumCols())
-					->addClass(ZBX_STYLE_LIST_TABLE_FOOTER)
-			);
-		}
-	}
-	else {
-		$report->setHeader([
-			CSlaHelper::getReportNames(true)[$data['sla']['period']],
-			_x('SLO', 'compact table header'),
-			_x('SLI', 'compact table header'),
-			_x('Uptime', 'compact table header'),
-			_x('Downtime', 'compact table header'),
-			_x('Error budget', 'compact table header'),
-			_x('Excluded downtimes', 'compact table header')
-		]);
+			foreach (array_intersect_key($data['services'], $service_index) as $serviceid => $service) {
+				$row = [
+					(new CCol($data['has_access'][CRoleHelper::ACTIONS_MANAGE_SLA]
+						? new CLink(
+							$service['name'],
+							(new CUrl('zabbix.php'))
+								->setArgument('action', 'slareport.list')
+								->setArgument('filter_slaid', $data['sla']['slaid'])
+								->setArgument('filter_serviceid', $serviceid)
+								->setArgument('filter_set', 1)
+								->getUrl()
+						)
+						: $service['name']
+					))->addClass(ZBX_STYLE_WORDBREAK),
+					CSlaHelper::getSloTag((float) $data['sla']['slo'])
+				];
 
-		if ($data['sli']['serviceids']) {
-			$service_index = 0;
-
-			foreach (array_reverse($data['sli']['periods'], true) as $period_index => $period) {
-				$sli = $data['sli']['sli'][$period_index][$service_index];
-
-				$excluded_downtime_tags = [];
-				foreach ($sli['excluded_downtimes'] as $excluded_downtime) {
-					$excluded_downtime_tags[] = CSlaHelper::getExcludedDowntimeTag($excluded_downtime);
+				foreach (array_keys($data['sli']['periods']) as $period_index) {
+					$row[] = CSlaHelper::getSliTag(
+						$data['sli']['sli'][$period_index][$service_index[$serviceid]]['sli'],
+						(float) $data['sla']['slo']
+					);
 				}
 
-				$report->addRow([
-					CSlaHelper::getPeriodTag((int) $data['sla']['period'], $period['period_from'], $period['period_to'],
-						$data['sla']['timezone']
-					),
-					CSlaHelper::getSloTag((float) $data['sla']['slo']),
-					CSlaHelper::getSliTag($sli['sli'], (float) $data['sla']['slo']),
-					CSlaHelper::getUptimeTag($sli['uptime']),
-					CSlaHelper::getDowntimeTag($sli['downtime']),
-					CSlaHelper::getErrorBudgetTag($sli['error_budget']),
-					$excluded_downtime_tags
-				]);
+				$report->addRow($row);
+
+				if (++$num_rows_displayed == $data['rows_per_page']) {
+					break;
+				}
+			}
+
+			$total = count($data['services']) > $data['search_limit']
+				? $data['search_limit'].'+'
+				: count($data['services']);
+
+			if ($total > 0) {
+				$report->setFooter(
+					(new CCol(_s('Displaying %1$s of %2$s found', $num_rows_displayed, $total)))
+						->setColSpan($report->getNumCols())
+						->addClass(ZBX_STYLE_LIST_TABLE_FOOTER)
+				);
 			}
 		}
+		else {
+			$report->setHeader([
+				CSlaHelper::getReportNames(true)[$data['sla']['period']],
+				_x('SLO', 'compact table header'),
+				_x('SLI', 'compact table header'),
+				_x('Uptime', 'compact table header'),
+				_x('Downtime', 'compact table header'),
+				_x('Error budget', 'compact table header'),
+				_x('Excluded downtimes', 'compact table header')
+			]);
+
+			if ($data['sli']['serviceids']) {
+				$service_index = 0;
+
+				foreach (array_reverse($data['sli']['periods'], true) as $period_index => $period) {
+					$sli = $data['sli']['sli'][$period_index][$service_index];
+
+					$excluded_downtime_tags = [];
+					foreach ($sli['excluded_downtimes'] as $excluded_downtime) {
+						$excluded_downtime_tags[] = CSlaHelper::getExcludedDowntimeTag($excluded_downtime);
+					}
+
+					$report->addRow([
+						CSlaHelper::getPeriodTag((int) $data['sla']['period'], $period['period_from'], $period['period_to'],
+							$data['sla']['timezone']
+						),
+						CSlaHelper::getSloTag((float) $data['sla']['slo']),
+						CSlaHelper::getSliTag($sli['sli'], (float) $data['sla']['slo']),
+						CSlaHelper::getUptimeTag($sli['uptime']),
+						CSlaHelper::getDowntimeTag($sli['downtime']),
+						CSlaHelper::getErrorBudgetTag($sli['error_budget']),
+						$excluded_downtime_tags
+					]);
+				}
+			}
+		}
+
+		$view->addItem($report);
 	}
-
-	// Adicionar o gráfico de tendências se houver dados
-	if (!empty($data['graph_data'])) {
-		$graph_container = (new CDiv())
-			->setId('sla-trend-graph-'.uniqid())
-			->addClass('sla-trend-graph-container')
-			->addStyle('width: 100%; height: 200px; margin-bottom: 10px;');
-
-		$view->addItem($graph_container);
-		
-		// Passar dados para o JavaScript
-		$view->setVar('graph_data', $data['graph_data']);
-		$view->setVar('slo', (float) $data['sla']['slo']);
-		$view->setVar('graph_type', $data['graph_type']);
-		$view->setVar('graph_period', $data['graph_period']);
-		$view->setVar('threshold_warning', $data['threshold_warning']);
-		$view->setVar('threshold_critical', $data['threshold_critical']);
-		$view->setVar('display_mode', $data['display_mode']);
-	}
-
-	// Adicionar a tabela de relatório
-	$view->addItem($report);
 }
 
 /**

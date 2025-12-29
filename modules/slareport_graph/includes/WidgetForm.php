@@ -56,6 +56,11 @@ class WidgetForm extends CWidgetForm {
 	public const GRAPH_PERIOD_365_DAYS = 365;
 	public const GRAPH_PERIOD_CUSTOM = 0;
 
+	// Constantes para opções de exibição de conteúdo
+	public const SHOW_GRAPH_AND_TABLE = 0;
+	public const SHOW_GRAPH_ONLY = 1;
+	public const SHOW_TABLE_ONLY = 2;
+
 	public function validate(bool $strict = false): array {
 		/** @var CWidgetFieldMultiSelectSla $slaid_field */
 		$slaid_field = $this->getFields()['slaid'];
@@ -98,7 +103,17 @@ class WidgetForm extends CWidgetForm {
 				(new CWidgetFieldSelect('display_mode', _('Display mode'), [
 					self::DISPLAY_MODE_REPORT => _('Report with graph'),
 					self::DISPLAY_MODE_SINGLE_ITEM => _('Single item')
-				]))->setDefault(self::DISPLAY_MODE_REPORT)
+				]))
+					->setDefault(self::DISPLAY_MODE_REPORT)
+			)
+			// Opção de exibição de conteúdo (para modo Report)
+			->addField(
+				(new CWidgetFieldSelect('show_content', _('Show'), [
+					self::SHOW_GRAPH_AND_TABLE => _('Graph and table'),
+					self::SHOW_GRAPH_ONLY => _('Graph only'),
+					self::SHOW_TABLE_ONLY => _('Table only')
+				]))
+					->setDefault(self::SHOW_GRAPH_AND_TABLE)
 			)
 			// Campos originais do SLA Report
 			->addField(
@@ -107,23 +122,31 @@ class WidgetForm extends CWidgetForm {
 					->setMultiple(false)
 			)
 			->addField(
-				(new CWidgetFieldMultiSelectService('serviceid', _('Service')))->setMultiple(false)
+				(new CWidgetFieldMultiSelectService('serviceid', _('Service')))
+					->setMultiple(false)
 			)
 			->addField(
-				(new CWidgetFieldIntegerBox('show_periods', _('Show periods'), 1, ZBX_SLA_MAX_REPORTING_PERIODS))
-					->setDefault(ZBX_SLA_DEFAULT_REPORTING_PERIODS)
+				new CWidgetFieldIntegerBox('show_periods', _('Show periods'), ZBX_SLA_MIN_REPORTING_PERIODS,
+					ZBX_SLA_MAX_REPORTING_PERIODS
+				)
 			)
 			->addField(
-				(new CWidgetFieldTimePeriod('date_period'))
-					->setDateOnly()
+				(new CWidgetFieldTimePeriod('date_period', _('Date period')))
+					->setDefault([
+						CWidgetField::FOREIGN_REFERENCE_KEY => CWidgetField::createTypedReference(
+							CWidgetField::REFERENCE_DASHBOARD, CWidgetFieldTimePeriod::FIELD_NAME
+						)
+					])
+					->setFlags(CWidgetField::FLAG_NOT_EMPTY | CWidgetField::FLAG_LABEL_ASTERISK)
 			)
-			// Campos para o gráfico
+			// Configurações do gráfico
 			->addField(
 				(new CWidgetFieldSelect('graph_type', _('Graph type'), [
 					self::GRAPH_TYPE_LINE => _('Line'),
 					self::GRAPH_TYPE_BAR => _('Bar'),
 					self::GRAPH_TYPE_AREA => _('Area')
-				]))->setDefault(self::GRAPH_TYPE_LINE)
+				]))
+					->setDefault(self::GRAPH_TYPE_LINE)
 			)
 			->addField(
 				(new CWidgetFieldSelect('graph_period', _('Graph period'), [
@@ -132,9 +155,9 @@ class WidgetForm extends CWidgetForm {
 					self::GRAPH_PERIOD_90_DAYS => _('Last 90 days'),
 					self::GRAPH_PERIOD_365_DAYS => _('Last 365 days'),
 					self::GRAPH_PERIOD_CUSTOM => _('Use report period')
-				]))->setDefault(self::GRAPH_PERIOD_30_DAYS)
+				]))
+					->setDefault(self::GRAPH_PERIOD_30_DAYS)
 			)
-			// Campos para thresholds de alerta
 			->addField(
 				(new CWidgetFieldIntegerBox('threshold_warning', _('Warning threshold (%)'), 0, 100))
 					->setDefault(95)
@@ -143,18 +166,21 @@ class WidgetForm extends CWidgetForm {
 				(new CWidgetFieldIntegerBox('threshold_critical', _('Critical threshold (%)'), 0, 100))
 					->setDefault(90)
 			)
-			// Campos para Single Item
+			// Configurações do Single Item
 			->addField(
-				(new CWidgetFieldCheckBox('show_graph_single', _('Show mini graph')))->setDefault(1)
+				(new CWidgetFieldCheckBox('show_graph_single', _('Show mini graph')))
+					->setDefault(1)
 			)
 			->addField(
-				(new CWidgetFieldCheckBox('show_slo_single', _('Show SLO')))->setDefault(1)
+				(new CWidgetFieldCheckBox('show_slo_single', _('Show SLO')))
+					->setDefault(1)
 			)
 			->addField(
-				(new CWidgetFieldCheckBox('show_error_budget', _('Show error budget')))->setDefault(1)
+				(new CWidgetFieldCheckBox('show_error_budget', _('Show error budget')))
+					->setDefault(1)
 			)
 			->addField(
-				(new CWidgetFieldColor('bg_color', _('Background color')))->setDefault('')
+				new CWidgetFieldColor('bg_color', _('Background color'))
 			);
 	}
 }

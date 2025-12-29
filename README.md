@@ -1,6 +1,6 @@
 # SLA Report with Graph Widget for Zabbix 7.0
 
-Este widget é uma extensão do widget nativo "SLA Report" do Zabbix, adicionando suporte para exibição de gráficos de tendências de SLI (Service Level Indicator) ao longo do tempo.
+Este widget é uma extensão do widget nativo "SLA Report" do Zabbix, adicionando suporte para exibição de gráficos de tendências de SLI (Service Level Indicator) ao longo do tempo usando **Chart.js**.
 
 ## Funcionalidades
 
@@ -9,20 +9,32 @@ Este widget é uma extensão do widget nativo "SLA Report" do Zabbix, adicionand
 - Visualização de SLI, SLO, Uptime, Downtime e Error Budget
 - Suporte a múltiplos serviços e períodos
 
-### Novas Funcionalidades (v2.1)
+### Novas Funcionalidades (v2.2)
 
-#### 1. Modo de Exibição
+#### 1. Biblioteca Chart.js
+- **Gráficos profissionais**: Todos os gráficos agora são renderizados com Chart.js 4.4.1
+- **Performance otimizada**: Melhor desempenho e responsividade
+- **Interatividade**: Tooltips informativos, zoom e pan (quando aplicável)
+- **Acessibilidade**: Melhor suporte para leitores de tela
+
+#### 2. Opções de Exibição de Conteúdo (NOVO!)
+Escolha o que exibir no modo Report:
+- **Graph and table**: Exibe o gráfico de tendências e a tabela de dados (padrão)
+- **Graph only**: Exibe apenas o gráfico de tendências
+- **Table only**: Exibe apenas a tabela de dados SLA
+
+#### 3. Modo de Exibição
 Escolha entre dois modos de visualização:
-- **Report with graph**: Exibe o relatório completo com tabela e gráfico de tendências
-- **Single item**: Exibe apenas o valor atual do SLI de forma destacada, ideal para dashboards de monitoramento
+- **Report with graph**: Exibe o relatório completo com gráfico e/ou tabela
+- **Single item**: Exibe apenas o valor atual do SLI de forma destacada
 
-#### 2. Seletor de Tipo de Gráfico
+#### 4. Seletor de Tipo de Gráfico
 Escolha entre três tipos de visualização:
 - **Line (Linha)**: Gráfico de linha tradicional com pontos de dados
 - **Bar (Barras)**: Gráfico de barras verticais coloridas por status
 - **Area (Área)**: Gráfico de área preenchida com linha de contorno
 
-#### 3. Período Customizável para o Gráfico
+#### 5. Período Customizável para o Gráfico
 Selecione o período de dados exibido no gráfico:
 - Últimos 7 dias
 - Últimos 30 dias
@@ -30,7 +42,7 @@ Selecione o período de dados exibido no gráfico:
 - Últimos 365 dias
 - Usar período do relatório (customizado)
 
-#### 4. Alertas Visuais e Thresholds
+#### 6. Alertas Visuais e Thresholds
 Configure thresholds para alertas visuais:
 - **Threshold de Warning (%)**: Valor abaixo do qual o status é "Warning" (padrão: 95%)
 - **Threshold de Critical (%)**: Valor abaixo do qual o status é "Critical" (padrão: 90%)
@@ -42,7 +54,7 @@ O gráfico exibe:
 - **Linha do SLO**: Linha tracejada roxa indicando o objetivo de nível de serviço
 - **Pontos coloridos**: Verde (OK), Amarelo (Warning), Vermelho (Critical)
 
-#### 5. Modo Single Item (NOVO!)
+#### 7. Modo Single Item
 Visualização simplificada para dashboards:
 - **Valor SLI destacado**: Exibe o SLI atual em tamanho grande com cor indicativa do status
 - **Mini gráfico**: Gráfico sparkline mostrando a tendência recente
@@ -89,6 +101,7 @@ Visualização simplificada para dashboards:
 | Campo | Descrição |
 |-------|-----------|
 | Display mode | Modo de exibição: Report with graph ou Single item |
+| Show | (Modo Report) Graph and table, Graph only ou Table only |
 | SLA | Selecione o SLA a ser exibido |
 | Service | (Opcional) Filtre por um serviço específico |
 | Show periods | Número de períodos a exibir na tabela |
@@ -123,6 +136,7 @@ modules/
     │   └── WidgetView.php
     ├── assets/
     │   └── js/
+    │       ├── chart.min.js (Chart.js 4.4.1)
     │       └── class.widget.js
     ├── includes/
     │   └── WidgetForm.php
@@ -133,6 +147,13 @@ modules/
 ```
 
 ## Changelog
+
+### v2.2.0
+- **Migração para Chart.js**: Todos os gráficos agora usam Chart.js 4.4.1
+- **Opções de exibição**: Adicionado campo "Show" para escolher entre Graph+Table, Graph only ou Table only
+- **Performance**: Melhor desempenho de renderização de gráficos
+- **Interatividade**: Tooltips aprimorados com status (OK, Warning, Critical)
+- **Responsividade**: Gráficos se adaptam automaticamente ao tamanho do widget
 
 ### v2.1.0
 - Adicionado modo de exibição "Single Item" para visualização simplificada
@@ -153,6 +174,12 @@ modules/
 - Versão inicial com gráfico de linha de tendências SLI
 - Baseado no widget slareport do Zabbix 7.0
 
+## Tecnologias
+
+- **Chart.js 4.4.1**: Biblioteca JavaScript para gráficos interativos
+- **PHP 8.1+**: Backend do widget
+- **Zabbix 7.0 API**: Integração com dados de SLA
+
 ## Licença
 
 GNU Affero General Public License v3.0
@@ -160,4 +187,9 @@ GNU Affero General Public License v3.0
 ## Autor
 
 Baseado no widget slareport do Zabbix.
-Extensão desenvolvida para adicionar funcionalidades de gráficos de tendências.
+Extensão desenvolvida para adicionar funcionalidades de gráficos de tendências com Chart.js.
+
+## Suporte
+
+Para reportar bugs ou solicitar funcionalidades, abra uma issue no repositório GitHub:
+https://github.com/Luugui/slareport-graph/issues

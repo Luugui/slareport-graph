@@ -47,6 +47,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 			'graph_data' => [],
 			// Modo de exibição
 			'display_mode' => $this->fields_values['display_mode'] ?? WidgetForm::DISPLAY_MODE_REPORT,
+			'show_content' => $this->fields_values['show_content'] ?? WidgetForm::SHOW_GRAPH_AND_TABLE,
 			// Configurações do gráfico
 			'graph_type' => $this->fields_values['graph_type'] ?? WidgetForm::GRAPH_TYPE_LINE,
 			'graph_period' => $this->fields_values['graph_period'] ?? WidgetForm::GRAPH_PERIOD_30_DAYS,

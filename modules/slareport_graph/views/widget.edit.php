@@ -26,6 +26,10 @@
 	->addField(
 		new CWidgetFieldSelectView($data['fields']['display_mode'])
 	)
+	// Opção de exibição de conteúdo (para modo Report)
+	->addField(
+		new CWidgetFieldSelectView($data['fields']['show_content'])
+	)
 	// Campos originais do SLA Report
 	->addField(
 		new CWidgetFieldMultiSelectSlaView($data['fields']['slaid'])

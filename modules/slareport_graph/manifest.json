@@ -4,7 +4,7 @@
 	"type": "widget",
 	"name": "SLA report with Graph",
 	"namespace": "SlaReportGraph",
-	"version": "1.0",
+	"version": "2.2",
 	"author": "Manus",
 	"description": "Displays SLA reports with a trend graph for service availability.",
 	"url": "web_interface/frontend_sections/dashboards/widgets/sla_report_graph",
@@ -18,6 +18,6 @@
 		}
 	},
 	"assets": {
-		"js": ["class.widget.js"]
+		"js": ["chart.min.js", "class.widget.js"]
 	}
 }
