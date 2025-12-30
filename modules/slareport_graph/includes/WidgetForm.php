@@ -126,7 +126,7 @@ class WidgetForm extends CWidgetForm {
 					->setMultiple(false)
 			)
 			->addField(
-				new CWidgetFieldIntegerBox('show_periods', _('Show periods'), ZBX_SLA_MIN_REPORTING_PERIODS,
+				new CWidgetFieldIntegerBox('show_periods', _('Show periods'), 1,
 					ZBX_SLA_MAX_REPORTING_PERIODS
 				)
 			)
