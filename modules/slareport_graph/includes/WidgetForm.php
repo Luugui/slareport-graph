@@ -131,13 +131,8 @@ class WidgetForm extends CWidgetForm {
 				)
 			)
 			->addField(
-				(new CWidgetFieldTimePeriod('date_period', _('Date period')))
-					->setDefault([
-						CWidgetField::FOREIGN_REFERENCE_KEY => CWidgetField::createTypedReference(
-							CWidgetField::REFERENCE_DASHBOARD, CWidgetFieldTimePeriod::FIELD_NAME
-						)
-					])
-					->setFlags(CWidgetField::FLAG_NOT_EMPTY | CWidgetField::FLAG_LABEL_ASTERISK)
+				(new CWidgetFieldTimePeriod('date_period'))
+					->setDateOnly()
 			)
 			// Configurações do gráfico
 			->addField(
