@@ -157,26 +157,9 @@ class WidgetView extends CControllerDashboardWidgetView {
 						$graph_period_to = time();
 						$graph_period_from = strtotime("-{$graph_period_days} days");
 						
-						// Calcular número de períodos baseado no período do SLA
-						switch ($data['sla']['period']) {
-							case ZBX_SLA_PERIOD_DAILY:
-								$graph_periods_count = min($graph_period_days, ZBX_SLA_MAX_REPORTING_PERIODS);
-								break;
-							case ZBX_SLA_PERIOD_WEEKLY:
-								$graph_periods_count = min(ceil($graph_period_days / 7), ZBX_SLA_MAX_REPORTING_PERIODS);
-								break;
-							case ZBX_SLA_PERIOD_MONTHLY:
-								$graph_periods_count = min(ceil($graph_period_days / 30), ZBX_SLA_MAX_REPORTING_PERIODS);
-								break;
-							case ZBX_SLA_PERIOD_QUARTERLY:
-								$graph_periods_count = min(ceil($graph_period_days / 90), ZBX_SLA_MAX_REPORTING_PERIODS);
-								break;
-							case ZBX_SLA_PERIOD_ANNUALLY:
-								$graph_periods_count = min(ceil($graph_period_days / 365), ZBX_SLA_MAX_REPORTING_PERIODS);
-								break;
-							default:
-								$graph_periods_count = ZBX_SLA_DEFAULT_REPORTING_PERIODS;
-						}
+						// Calcular número de períodos para o gráfico
+						// Usar um número fixo de períodos baseado no intervalo de tempo
+						$graph_periods_count = min($graph_period_days, ZBX_SLA_MAX_REPORTING_PERIODS);
 					}
 
 					// Buscar dados para o relatório
