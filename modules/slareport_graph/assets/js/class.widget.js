@@ -15,10 +15,16 @@
 
 class CWidgetSlaReportGraph extends CWidget {
 
-	// Constantes para tipos de gráfico (devem corresponder ao PHP)
+	// Constantes para tipos de gráfico (modo Report)
 	static GRAPH_TYPE_LINE = 0;
 	static GRAPH_TYPE_BAR = 1;
 	static GRAPH_TYPE_AREA = 2;
+
+	// Constantes para tipos de gráfico Single Item
+	static SINGLE_GRAPH_TYPE_SPARKLINE = 0;
+	static SINGLE_GRAPH_TYPE_PIE = 1;
+	static SINGLE_GRAPH_TYPE_DOUGHNUT = 2;
+	static SINGLE_GRAPH_TYPE_GAUGE = 3;
 
 	// Constantes para modo de exibição (devem corresponder ao PHP)
 	static DISPLAY_MODE_REPORT = 0;
@@ -33,6 +39,7 @@ class CWidgetSlaReportGraph extends CWidget {
 		this._graph_data = [];
 		this._slo = 0;
 		this._graph_type = CWidgetSlaReportGraph.GRAPH_TYPE_LINE;
+		this._single_graph_type = CWidgetSlaReportGraph.SINGLE_GRAPH_TYPE_SPARKLINE;
 		this._threshold_warning = 95;
 		this._threshold_critical = 90;
 		this._display_mode = CWidgetSlaReportGraph.DISPLAY_MODE_REPORT;
@@ -65,6 +72,7 @@ class CWidgetSlaReportGraph extends CWidget {
 			this._graph_data = response.graph_data;
 			this._slo = response.slo || 0;
 			this._graph_type = response.graph_type !== undefined ? parseInt(response.graph_type) : CWidgetSlaReportGraph.GRAPH_TYPE_LINE;
+			this._single_graph_type = response.single_graph_type !== undefined ? parseInt(response.single_graph_type) : CWidgetSlaReportGraph.SINGLE_GRAPH_TYPE_SPARKLINE;
 			this._threshold_warning = response.threshold_warning !== undefined ? parseInt(response.threshold_warning) : 95;
 			this._threshold_critical = response.threshold_critical !== undefined ? parseInt(response.threshold_critical) : 90;
 			this._display_mode = response.display_mode !== undefined ? parseInt(response.display_mode) : CWidgetSlaReportGraph.DISPLAY_MODE_REPORT;
@@ -106,7 +114,7 @@ class CWidgetSlaReportGraph extends CWidget {
 		// Limpar container
 		container.innerHTML = '';
 
-		// Verificar se é modo Single Item (mini gráfico)
+		// Verificar se é modo Single Item
 		const isSingleMode = this._display_mode === CWidgetSlaReportGraph.DISPLAY_MODE_SINGLE_ITEM;
 
 		// Criar canvas para o Chart.js
@@ -118,53 +126,15 @@ class CWidgetSlaReportGraph extends CWidget {
 		// Destruir chart anterior se existir
 		this._destroyChart();
 
-		// Preparar dados para o Chart.js
-		const labels = this._graph_data.map(d => {
-			const date = new Date(d.clock * 1000);
-			return date.toLocaleDateString('pt-BR', {month: 'short', day: 'numeric'});
-		});
-
-		const values = this._graph_data.map(d => d.value);
-
-		// Determinar cores dos pontos baseadas nos thresholds
-		const pointColors = values.map(value => {
-			if (value >= this._threshold_warning) {
-				return '#4caf50'; // Verde
-			} else if (value >= this._threshold_critical) {
-				return '#ffc107'; // Amarelo
-			} else {
-				return '#f44336'; // Vermelho
-			}
-		});
-
-		// Configuração do Chart.js
-		const chartConfig = {
-			type: this._getChartType(),
-			data: {
-				labels: labels,
-				datasets: [
-					{
-						label: 'SLI (%)',
-						data: values,
-						borderColor: isSingleMode ? '#1976d2' : '#1976d2',
-						backgroundColor: this._getBackgroundColor(isSingleMode),
-						pointBackgroundColor: pointColors,
-						pointBorderColor: '#fff',
-						pointBorderWidth: isSingleMode ? 1 : 2,
-						pointRadius: isSingleMode ? 2 : 5,
-						pointHoverRadius: isSingleMode ? 3 : 7,
-						borderWidth: isSingleMode ? 1.5 : 2,
-						fill: this._graph_type === CWidgetSlaReportGraph.GRAPH_TYPE_AREA,
-						tension: 0.1
-					}
-				]
-			},
-			options: this._getChartOptions(isSingleMode),
-			plugins: [this._getThresholdLinesPlugin()]
-		};
-
-		// Criar o chart
-		this._chart_instance = new Chart(canvas, chartConfig);
+		// Renderizar baseado no tipo de gráfico
+		if (isSingleMode && (this._single_graph_type === CWidgetSlaReportGraph.SINGLE_GRAPH_TYPE_PIE || 
+							this._single_graph_type === CWidgetSlaReportGraph.SINGLE_GRAPH_TYPE_DOUGHNUT)) {
+			this._renderPieChart(canvas);
+		} else if (isSingleMode && this._single_graph_type === CWidgetSlaReportGraph.SINGLE_GRAPH_TYPE_GAUGE) {
+			this._renderGaugeChart(canvas);
+		} else {
+			this._renderLineChart(canvas, isSingleMode);
+		}
 	}
 
 	_getChartType() {
@@ -350,6 +320,180 @@ class CWidgetSlaReportGraph extends CWidget {
 		ctx.font = '9px Arial';
 		ctx.textAlign = 'right';
 		ctx.fillText(label, right - 5, y - 3);
-		ctx.restore();
+			ctx.restore();
+		}
+	}
+
+	_renderLineChart(canvas, isSingleMode) {
+		// Preparar dados para o Chart.js
+		const labels = this._graph_data.map(d => {
+			const date = new Date(d.clock * 1000);
+			return date.toLocaleDateString('pt-BR', {month: 'short', day: 'numeric'});
+		});
+
+		const values = this._graph_data.map(d => d.value);
+
+		// Determinar cores dos pontos baseadas nos thresholds
+		const pointColors = values.map(value => {
+			if (value >= this._threshold_warning) {
+				return '#4caf50'; // Verde
+			} else if (value >= this._threshold_critical) {
+				return '#ffc107'; // Amarelo
+			} else {
+				return '#f44336'; // Vermelho
+			}
+		});
+
+		// Configuração do Chart.js
+		const chartConfig = {
+			type: this._getChartType(),
+			data: {
+				labels: labels,
+				datasets: [
+					{
+						label: 'SLI (%)',
+						data: values,
+						borderColor: isSingleMode ? '#1976d2' : '#1976d2',
+						backgroundColor: this._getBackgroundColor(isSingleMode),
+						pointBackgroundColor: pointColors,
+						pointBorderColor: '#fff',
+						pointBorderWidth: isSingleMode ? 1 : 2,
+						pointRadius: isSingleMode ? 2 : 5,
+						pointHoverRadius: isSingleMode ? 3 : 7,
+						borderWidth: isSingleMode ? 1.5 : 2,
+						fill: this._graph_type === CWidgetSlaReportGraph.GRAPH_TYPE_AREA,
+						tension: 0.1
+					}
+				]
+			},
+			options: this._getChartOptions(isSingleMode),
+			plugins: [this._getThresholdLinesPlugin()]
+		};
+
+		// Criar o chart
+		this._chart_instance = new Chart(canvas, chartConfig);
+	}
+
+	_renderPieChart(canvas) {
+		// Calcular SLI médio
+		const avgSLI = this._graph_data.reduce((sum, d) => sum + d.value, 0) / this._graph_data.length;
+		const errorBudget = 100 - avgSLI;
+
+		// Determinar cor baseada nos thresholds
+		let sliColor;
+		if (avgSLI >= this._threshold_warning) {
+			sliColor = '#4caf50'; // Verde
+		} else if (avgSLI >= this._threshold_critical) {
+			sliColor = '#ffc107'; // Amarelo
+		} else {
+			sliColor = '#f44336'; // Vermelho
+		}
+
+		const chartType = this._single_graph_type === CWidgetSlaReportGraph.SINGLE_GRAPH_TYPE_DOUGHNUT ? 'doughnut' : 'pie';
+
+		const chartConfig = {
+			type: chartType,
+			data: {
+				labels: ['SLI', 'Error Budget'],
+				datasets: [{
+					data: [avgSLI, errorBudget],
+					backgroundColor: [sliColor, '#e0e0e0'],
+					borderWidth: 2,
+					borderColor: '#fff'
+				}]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: true,
+						position: 'bottom',
+						labels: {
+							font: {
+								size: 10
+							}
+						}
+					},
+					tooltip: {
+						callbacks: {
+							label: (context) => {
+								const label = context.label || '';
+								const value = context.parsed;
+								return `${label}: ${value.toFixed(2)}%`;
+							}
+						}
+					}
+				}
+			}
+		};
+
+		this._chart_instance = new Chart(canvas, chartConfig);
+	}
+
+	_renderGaugeChart(canvas) {
+		// Calcular SLI médio
+		const avgSLI = this._graph_data.reduce((sum, d) => sum + d.value, 0) / this._graph_data.length;
+
+		// Determinar cor baseada nos thresholds
+		let sliColor;
+		if (avgSLI >= this._threshold_warning) {
+			sliColor = '#4caf50'; // Verde
+		} else if (avgSLI >= this._threshold_critical) {
+			sliColor = '#ffc107'; // Amarelo
+		} else {
+			sliColor = '#f44336'; // Vermelho
+		}
+
+		// Usar gráfico doughnut para simular gauge
+		const chartConfig = {
+			type: 'doughnut',
+			data: {
+				labels: ['SLI', 'Restante'],
+				datasets: [{
+					data: [avgSLI, 100 - avgSLI],
+					backgroundColor: [sliColor, '#e0e0e0'],
+					borderWidth: 0,
+					circumference: 180,
+					rotation: 270
+				}]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				plugins: {
+					legend: {
+						display: false
+					},
+					tooltip: {
+						enabled: false
+					}
+				}
+			},
+			plugins: [{
+				afterDraw: (chart) => {
+					const {ctx, chartArea: {top, bottom, left, right, width, height}} = chart;
+					ctx.save();
+					
+					// Desenhar o valor no centro
+					const centerX = (left + right) / 2;
+					const centerY = bottom - 10;
+					
+					ctx.font = 'bold 24px Arial';
+					ctx.fillStyle = sliColor;
+					ctx.textAlign = 'center';
+					ctx.textBaseline = 'middle';
+					ctx.fillText(`${avgSLI.toFixed(1)}%`, centerX, centerY);
+					
+					ctx.font = '10px Arial';
+					ctx.fillStyle = '#666';
+					ctx.fillText('SLI', centerX, centerY + 18);
+					
+					ctx.restore();
+				}
+			}]
+		};
+
+		this._chart_instance = new Chart(canvas, chartConfig);
 	}
 }

@@ -44,10 +44,16 @@ class WidgetForm extends CWidgetForm {
 	public const DISPLAY_MODE_REPORT = 0;
 	public const DISPLAY_MODE_SINGLE_ITEM = 1;
 
-	// Constantes para tipos de gráfico
+	// Constantes para tipos de gráfico (modo Report)
 	public const GRAPH_TYPE_LINE = 0;
 	public const GRAPH_TYPE_BAR = 1;
 	public const GRAPH_TYPE_AREA = 2;
+
+	// Constantes para tipos de gráfico Single Item
+	public const SINGLE_GRAPH_TYPE_SPARKLINE = 0;
+	public const SINGLE_GRAPH_TYPE_PIE = 1;
+	public const SINGLE_GRAPH_TYPE_DOUGHNUT = 2;
+	public const SINGLE_GRAPH_TYPE_GAUGE = 3;
 
 	// Constantes para períodos do gráfico
 	public const GRAPH_PERIOD_7_DAYS = 7;
@@ -163,7 +169,16 @@ class WidgetForm extends CWidgetForm {
 			)
 			// Configurações do Single Item
 			->addField(
-				(new CWidgetFieldCheckBox('show_graph_single', _('Show mini graph')))
+				(new CWidgetFieldSelect('single_graph_type', _('Graph type'), [
+					self::SINGLE_GRAPH_TYPE_SPARKLINE => _('Sparkline'),
+					self::SINGLE_GRAPH_TYPE_PIE => _('Pie'),
+					self::SINGLE_GRAPH_TYPE_DOUGHNUT => _('Doughnut'),
+					self::SINGLE_GRAPH_TYPE_GAUGE => _('Gauge')
+				]))
+					->setDefault(self::SINGLE_GRAPH_TYPE_SPARKLINE)
+			)
+			->addField(
+				(new CWidgetFieldCheckBox('show_graph_single', _('Show graph')))
 					->setDefault(1)
 			)
 			->addField(

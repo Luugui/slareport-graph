@@ -79,6 +79,9 @@ function getGraphFieldsGroupView(array $fields): CWidgetFieldsGroupView {
 function getSingleItemFieldsGroupView(array $fields): CWidgetFieldsGroupView {
 	return (new CWidgetFieldsGroupView(_('Single item settings')))
 		->addField(
+			new CWidgetFieldSelectView($fields['single_graph_type'])
+		)
+		->addField(
 			new CWidgetFieldCheckBoxView($fields['show_graph_single'])
 		)
 		->addField(

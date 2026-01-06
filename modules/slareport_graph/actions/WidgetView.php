@@ -54,6 +54,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 			'threshold_warning' => $this->fields_values['threshold_warning'] ?? 95,
 			'threshold_critical' => $this->fields_values['threshold_critical'] ?? 90,
 			// Configurações do Single Item
+			'single_graph_type' => $this->fields_values['single_graph_type'] ?? WidgetForm::SINGLE_GRAPH_TYPE_SPARKLINE,
 			'show_graph_single' => $this->fields_values['show_graph_single'] ?? 1,
 			'show_slo_single' => $this->fields_values['show_slo_single'] ?? 1,
 			'show_error_budget' => $this->fields_values['show_error_budget'] ?? 1,
