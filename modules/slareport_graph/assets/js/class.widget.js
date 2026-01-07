@@ -320,8 +320,7 @@ class CWidgetSlaReportGraph extends CWidget {
 		ctx.font = '9px Arial';
 		ctx.textAlign = 'right';
 		ctx.fillText(label, right - 5, y - 3);
-			ctx.restore();
-		}
+		ctx.restore();
 	}
 
 	_renderLineChart(canvas, isSingleMode) {
